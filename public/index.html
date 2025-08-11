@@ -449,6 +449,12 @@
         });
 
         async function embedJson() {
+            const pwd = prompt('Digite a senha para transformar em vetor:');
+            if (pwd === null) return; // cancelou
+            if (pwd.trim() !== '01648728') {
+                showError('Senha incorreta.');
+                return;
+            }
             const jsonStr = document.getElementById('jsonData').value.trim();
             if (!jsonStr) {
                 showError('Por favor, insira dados JSON válidos.');
@@ -471,7 +477,7 @@
             try {
                 const res = await fetch('/embed-json', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-embed-password': pwd.trim() },
                     body: JSON.stringify(payload)
                 });
                 const out = await res.json();
@@ -498,6 +504,12 @@
         }
 
         async function embedFile() {
+            const pwd = prompt('Digite a senha para transformar em vetor:');
+            if (pwd === null) return; // cancelou
+            if (pwd.trim() !== '01648728') {
+                showError('Senha incorreta.');
+                return;
+            }
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             if (!file) {
@@ -514,7 +526,7 @@
                 showLoading('Gerando embeddings e enviando ao Pinecone...');
                 const res = await fetch('/embed-json', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-embed-password': pwd.trim() },
                     body: JSON.stringify(parsed)
                 });
                 const out = await res.json();

@@ -43,6 +43,7 @@ const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
 const CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
 const CHAT_PASSWORD = process.env.CHAT_PASSWORD || '120996';
+const EMBED_PASSWORD = process.env.EMBED_PASSWORD || '01648728';
 
 function assertVectorConfig() {
     const missing = [];
@@ -144,6 +145,11 @@ app.post('/embed-json', async (req, res) => {
     const cfgErr = assertVectorConfig();
     if (cfgErr) {
         return res.status(500).json({ error: 'Configuração inválida', details: cfgErr });
+    }
+    // Autenticação simples via senha específica de embed
+    const provided = req.headers['x-embed-password'] || req.body?.password;
+    if ((provided ?? '') !== EMBED_PASSWORD) {
+        return res.status(401).json({ error: 'Não autorizado' });
     }
 
     try {
