@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '50mb' }));
-app.use(express.static('public'));
+app.use(express.static('public', { index: false }));
 
 // Logger simples para depuração
 app.use((req, res, next) => {
@@ -128,10 +128,14 @@ function buildContextFromMetadata(md) {
     return lines.join('\n');
 }
 
-// Rota principal
+// Rota principal → Home
 app.get('/', (req, res) => {
-    // Página principal passa a ser o chat
-    res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+    res.sendFile(path.join(__dirname, 'public', 'home.html'));
+});
+
+// Alias para acessar a home diretamente
+app.get('/home', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
 // Página de chat (RAG)
@@ -205,6 +209,80 @@ app.post('/embed-json', async (req, res) => {
     }
 });
 
+// Rota para receber um arquivo Excel e gerar embeddings
+app.post('/embed-excel', upload.single('excelFile'), async (req, res) => {
+    console.log('[/embed-excel] Início do processamento');
+    const cfgErr = assertVectorConfig();
+    if (cfgErr) {
+        return res.status(500).json({ error: 'Configuração inválida', details: cfgErr });
+    }
+    const provided = req.headers['x-embed-password'] || req.body?.password;
+    if ((provided ?? '') !== EMBED_PASSWORD) {
+        return res.status(401).json({ error: 'Não autorizado' });
+    }
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Envie um arquivo Excel no campo "excelFile"' });
+        }
+
+        // Lê o Excel da memória e converte a primeira aba em array de objetos
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) {
+            return res.status(400).json({ error: 'Arquivo Excel sem planilhas' });
+        }
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+
+        if (!Array.isArray(jsonData) || jsonData.length === 0) {
+            return res.status(400).json({ error: 'Não foi possível extrair dados do Excel' });
+        }
+
+        console.log(`[/embed-excel] Registros extraídos do Excel: ${jsonData.length}`);
+
+        const BATCH_SIZE = 100;
+        let totalUpserted = 0;
+        for (let start = 0; start < jsonData.length; start += BATCH_SIZE) {
+            const chunk = jsonData.slice(start, start + BATCH_SIZE);
+            const texts = chunk.map(buildCanonicalText);
+            const embeddings = await embedBatch(texts);
+            const timestamp = new Date().toISOString();
+            const records = chunk.map((item, i) => ({
+                id: createDeterministicId(item, start + i),
+                values: embeddings[i],
+                metadata: sanitizeMetadata({
+                    respAbertura: item.respAbertura,
+                    titulo: item.titulo,
+                    problema: item.problema,
+                    solucao: item.solucao,
+                    menuSistema: item.menuSistema,
+                    nomeCli: item.nomeCli,
+                    nomeFuncionarioCliente: item.nomeFuncionarioCliente,
+                    Comentario: item.Comentario,
+                    Tags: item.Tags,
+                    createdAt: timestamp,
+                    source: 'api:/embed-excel'
+                })
+            }));
+            await upsertBatchToPinecone(records);
+            totalUpserted += records.length;
+            console.log(`[/embed-excel] Upsert realizado: +${records.length} (total=${totalUpserted})`);
+        }
+
+        return res.json({
+            ok: true,
+            upserted: totalUpserted,
+            index: PINECONE_INDEX,
+            namespace: PINECONE_NAMESPACE || null,
+            model: EMBEDDING_MODEL
+        });
+    } catch (err) {
+        console.error('[/embed-excel] Erro:', err);
+        return res.status(500).json({ error: 'Falha ao processar embeddings (Excel)', details: err.message });
+    }
+});
+
 // Rota de chat (local) e alias para compatibilidade com Vercel
 const chatHandler = require(path.join(__dirname, 'api', 'chat.js'));
 app.post('/chat', chatHandler);
@@ -251,6 +329,15 @@ app.post('/convert', upload.single('jsonFile'), (req, res) => {
             return res.status(400).json({ 
                 error: 'Os dados devem ser um array de objetos' 
             });
+        }
+
+        // Filtro opcional: somente linhas com campo solucao > N caracteres
+        const minLenRaw = req.body?.filterSolutionMinLen;
+        const minLen = minLenRaw !== undefined ? Number(minLenRaw) : 0;
+        if (!Number.isNaN(minLen) && minLen > 0) {
+            const before = jsonData.length;
+            jsonData = jsonData.filter((row) => typeof row?.solucao === 'string' && row.solucao.length > minLen);
+            console.log(`[/convert] Filtro aplicado (solucao > ${minLen}). ${before} -> ${jsonData.length}`);
         }
 
         console.log('[/convert] JSON válido. Quantidade de registros:', jsonData.length);

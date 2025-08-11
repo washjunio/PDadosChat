@@ -1,8 +1,10 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
+    { "source": "/", "destination": "/home.html" },
     { "source": "/chat", "destination": "/chat.html" },
-    { "source": "/chat.html", "destination": "/chat.html" }
+    { "source": "/chat.html", "destination": "/chat.html" },
+    { "source": "/vector", "destination": "/vector.html" },
+    { "source": "/vector.html", "destination": "/vector.html" }
   ]
 }
 

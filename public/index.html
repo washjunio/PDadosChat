@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor JSON para Excel</title>
+    <title>Transformar em Excel</title>
     <style>
         * {
             margin: 0;
@@ -202,9 +202,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔄 Conversor JSON para Excel</h1>
+        <h1>📄 Transformar em Excel</h1>
         <div style="text-align:center; margin-bottom: 16px;">
-            <a href="/chat.html" style="color:#667eea; text-decoration:none; font-weight:600;">Abrir Assistente de Suporte (Chat)</a>
+            <a href="/home.html" style="color:#667eea; text-decoration:none; font-weight:600; margin-right: 14px;">← Voltar à Central</a>
+            <a href="/vector.html" style="color:#26a69a; text-decoration:none; font-weight:600;">Transformar em Vetor (Pinecone)</a>
         </div>
         
         <div class="tabs">
@@ -215,7 +216,7 @@
         <div id="json-tab" class="tab-content active">
             <button class="sample-btn" onclick="loadSampleData()">Carregar Dados de Exemplo</button>
             
-            <div class="form-group">
+        <div class="form-group">
                 <label for="jsonData">Cole seu JSON aqui:</label>
                 <textarea id="jsonData" placeholder='[
   {
@@ -231,8 +232,13 @@
 ]'></textarea>
             </div>
             
+            <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:#555;">
+                    <input type="checkbox" id="onlyLongSolutionsJson" />
+                    Manter apenas linhas com solução > 50 caracteres
+                </label>
+            </div>
             <button class="btn" onclick="convertJson()">Converter para Excel</button>
-            <button class="btn" style="margin-top: 10px; background: linear-gradient(135deg,#26a69a 0%, #26c6da 100%);" onclick="embedJson()">Transformar em vetor (Pinecone)</button>
         </div>
 
         <div id="file-tab" class="tab-content">
@@ -244,8 +250,13 @@
                 </label>
             </div>
             
+            <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:14px; color:#555;">
+                    <input type="checkbox" id="onlyLongSolutionsFile" />
+                    Manter apenas linhas com solução > 50 caracteres
+                </label>
+            </div>
             <button class="btn" onclick="convertFile()">Converter para Excel</button>
-            <button class="btn" style="margin-top: 10px; background: linear-gradient(135deg,#26a69a 0%, #26c6da 100%);" onclick="embedFile()">Transformar em vetor (Pinecone)</button>
         </div>
 
         
@@ -324,6 +335,7 @@
 
         function convertJson() {
             const jsonData = document.getElementById('jsonData').value.trim();
+            const onlyLong = document.getElementById('onlyLongSolutionsJson').checked;
             
             if (!jsonData) {
                 showError('Por favor, insira dados JSON válidos.');
@@ -344,7 +356,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ data: jsonData })
+                body: JSON.stringify({ data: jsonData, filterSolutionMinLen: onlyLong ? 50 : 0 })
             })
             .then(response => {
                 if (response.ok) {
@@ -375,6 +387,7 @@
         function convertFile() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
+            const onlyLong = document.getElementById('onlyLongSolutionsFile').checked;
             
             if (!file) {
                 showError('Por favor, selecione um arquivo JSON.');
@@ -385,6 +398,7 @@
 
             const formData = new FormData();
             formData.append('jsonFile', file);
+            formData.append('filterSolutionMinLen', onlyLong ? 50 : 0);
 
             fetch('/convert', {
                 method: 'POST',
@@ -448,52 +462,6 @@
             }
         });
 
-        async function embedJson() {
-            const pwd = prompt('Digite a senha para transformar em vetor:');
-            if (pwd === null) return; // cancelou
-            if (pwd.trim() !== '01648728') {
-                showError('Senha incorreta.');
-                return;
-            }
-            const jsonStr = document.getElementById('jsonData').value.trim();
-            if (!jsonStr) {
-                showError('Por favor, insira dados JSON válidos.');
-                return;
-            }
-            let payload;
-            try {
-                const parsed = JSON.parse(jsonStr);
-                if (!Array.isArray(parsed)) {
-                    showError('O JSON deve ser um array de objetos.');
-                    return;
-                }
-                payload = parsed;
-            } catch (e) {
-                showError('JSON inválido. Verifique a sintaxe.');
-                return;
-            }
-
-            showLoading('Gerando embeddings e enviando ao Pinecone...');
-            try {
-                const res = await fetch('/embed-json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-embed-password': pwd.trim() },
-                    body: JSON.stringify(payload)
-                });
-                const out = await res.json();
-                hideLoading();
-                if (!res.ok) {
-                    showError(out.error || 'Falha ao salvar no banco vetorial.');
-                    return;
-                }
-                const ns = out.namespace ? `/${out.namespace}` : '';
-                showSuccess(`Vetores inseridos: ${out.upserted}. Índice: ${out.index}${ns}. Modelo: ${out.model}.`);
-            } catch (err) {
-                hideLoading();
-                showError('Erro na chamada ao endpoint de embeddings.');
-            }
-        }
-
         function readFileAsText(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -502,113 +470,7 @@
                 reader.readAsText(file);
             });
         }
-
-        async function embedFile() {
-            const pwd = prompt('Digite a senha para transformar em vetor:');
-            if (pwd === null) return; // cancelou
-            if (pwd.trim() !== '01648728') {
-                showError('Senha incorreta.');
-                return;
-            }
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (!file) {
-                showError('Por favor, selecione um arquivo JSON.');
-                return;
-            }
-            try {
-                const text = await readFileAsText(file);
-                const parsed = JSON.parse(text);
-                if (!Array.isArray(parsed)) {
-                    showError('O arquivo deve conter um array de objetos JSON.');
-                    return;
-                }
-                showLoading('Gerando embeddings e enviando ao Pinecone...');
-                const res = await fetch('/embed-json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-embed-password': pwd.trim() },
-                    body: JSON.stringify(parsed)
-                });
-                const out = await res.json();
-                hideLoading();
-                if (!res.ok) {
-                    showError(out.error || 'Falha ao salvar no banco vetorial.');
-                    return;
-                }
-                const ns = out.namespace ? `/${out.namespace}` : '';
-                showSuccess(`Vetores inseridos: ${out.upserted}. Índice: ${out.index}${ns}. Modelo: ${out.model}.`);
-            } catch (err) {
-                hideLoading();
-                showError('Erro ao ler o arquivo ou ao chamar o endpoint de embeddings.');
-            }
-        }
-
-        async function ragIndex() {
-            const fieldsStr = document.getElementById('ragFields').value.trim();
-            const jsonStr = document.getElementById('ragJson').value.trim();
-            if (!jsonStr) {
-                showError('Insira um JSON para indexar no RAG.');
-                return;
-            }
-            try {
-                JSON.parse(jsonStr);
-            } catch (e) {
-                showError('JSON inválido para indexação.');
-                return;
-            }
-            showLoading();
-            try {
-                const res = await fetch('/rag/index', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data: jsonStr, selectFields: fieldsStr })
-                });
-                const out = await res.json();
-                hideLoading();
-                if (!res.ok) {
-                    showError(out.error || 'Falha ao indexar.');
-                    return;
-                }
-                showSuccess(`Indexados ${out.count} documentos (provider: ${out.provider}, dims: ${out.dims}).`);
-                document.getElementById('ragOutput').textContent = JSON.stringify(out, null, 2);
-            } catch (err) {
-                hideLoading();
-                showError('Erro na chamada de indexação.');
-            }
-        }
-
-        async function ragQuery() {
-            const question = document.getElementById('ragQuestion').value.trim();
-            const topK = parseInt(document.getElementById('ragTopK').value || '5', 10);
-            const answer = document.getElementById('ragAnswerLLM').checked;
-            if (!question) {
-                showError('Escreva uma pergunta.');
-                return;
-            }
-            showLoading();
-            try {
-                const res = await fetch('/rag/query', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question, topK, answer })
-                });
-                const out = await res.json();
-                hideLoading();
-                if (!res.ok) {
-                    showError(out.error || 'Falha na consulta.');
-                    return;
-                }
-                const formatted = {
-                    ...out,
-                    matches: (out.matches || []).map(m => ({ score: Number(m.score).toFixed(3), metadata: m.metadata }))
-                };
-                document.getElementById('ragOutput').textContent = JSON.stringify(formatted, null, 2);
-                showSuccess(out.answer ? 'Resposta gerada com LLM.' : 'Resultados retornados.');
-            } catch (err) {
-                hideLoading();
-                showError('Erro na chamada de consulta.');
-            }
-        }
+        
     </script>
 </body>
 </html>

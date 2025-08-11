@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central • Ferramentas de Suporte</title>
+  <style>
+    :root{
+      --bg1:#5b67f1; --bg2:#7b2cbf; --card:#ffffff; --ink:#1f2937; --muted:#6b7280; --accent:#667eea; --teal:#26a69a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+      background: linear-gradient(135deg, #e8f5e9 0%, #d1fae5 100%);
+      background-attachment: fixed;}
+    .shell{max-width:1040px;margin:0 auto;padding:28px}
+    .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+    .brand .logo{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#fff1;backdrop-filter: blur(6px);color:#fff;font-weight:700}
+    .nav a.btn{margin-left:10px}
+    .card{background:var(--card);border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.15);overflow:hidden}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;padding:36px}
+    .hero h1{font-size:40px;line-height:1.1;margin:0 0 8px}
+    .hero p{color:var(--muted);margin:0 0 18px}
+    .cta{display:flex;gap:12px;flex-wrap:wrap}
+    .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.teal{background:var(--teal);color:#fff}
+    .btn.ghost{background:#0000;color:var(--accent);border:2px solid #e5e7eb}
+    .illus{background:linear-gradient(135deg,#eef2ff,#f8fafc);border:1px solid #eaeefc;border-radius:16px;min-height:200px;display:grid;place-items:center}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0 36px 36px}
+    .feature{background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:16px}
+    .feature h4{margin:0 0 6px}
+    .muted{color:var(--muted)}
+    @media (max-width:900px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+  </style>
+  </head>
+  <body>
+  <div class="shell">
+    <div class="nav">
+      <a class="brand" href="#"><span class="logo">🧩</span><strong>Central de Ferramentas</strong></a>
+      <div>
+        <a class="btn ghost" href="/chat.html">Chat</a>
+        <a class="btn ghost" href="/index.html">Excel</a>
+        <a class="btn ghost" href="/vector.html">Vetor</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hero">
+        <div>
+          <h1>Produtividade para Suporte ERP</h1>
+          <p>Converta dados para Excel, gere vetores para busca semântica no Pinecone e utilize um chat baseado em RAG para responder dúvidas com base no seu histórico.</p>
+          <div class="cta">
+            <a class="btn primary" href="/index.html">Transformar em Excel</a>
+            <a class="btn teal" href="/vector.html">Transformar em Vetor</a>
+            <a class="btn ghost" href="/chat.html">Abrir Chat de Suporte</a>
+          </div>
+        </div>
+        <div class="illus">📊 🔎 💬</div>
+      </div>
+      <div class="grid">
+        <div class="feature">
+          <h4>Conversão ágil para Excel</h4>
+          <p class="muted">Cole JSON ou envie um arquivo e receba uma planilha pronta para análise e compartilhamento.</p>
+        </div>
+        <div class="feature">
+          <h4>Vetorização para RAG</h4>
+          <p class="muted">Transforme JSON ou Excel em vetores no Pinecone para consultas semânticas de alta qualidade.</p>
+        </div>
+        <div class="feature">
+          <h4>Chat com contexto</h4>
+          <p class="muted">Assistente que usa os vetores como fonte de verdade. Respostas objetivas em português.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  </body>
+  </html>
+
+
