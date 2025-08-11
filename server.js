@@ -199,73 +199,10 @@ app.post('/embed-json', async (req, res) => {
     }
 });
 
-// Rota de chat: consulta no Pinecone e gera resposta com contexto
-app.post('/chat', async (req, res) => {
-    console.log('[/chat] Pergunta recebida');
-    const cfgErr = assertVectorConfig();
-    if (cfgErr) return res.status(500).json({ error: 'Configuração inválida', details: cfgErr });
-
-    try {
-        // Autenticação simples via senha
-        const provided = req.headers['x-chat-password'] || req.body?.password;
-        if ((provided ?? '') !== CHAT_PASSWORD) {
-            return res.status(401).json({ error: 'Não autorizado' });
-        }
-
-        const question = (req.body && req.body.question) ? String(req.body.question) : '';
-        const topK = Math.max(1, Math.min(10, Number(req.body?.topK || 20)));
-        if (!question) return res.status(400).json({ error: 'Campo "question" é obrigatório' });
-
-        // 1) embedding da pergunta
-        const [qEmbedding] = await embedBatch([question]);
-
-        // 2) consulta ao Pinecone
-        let idx = pinecone.index(PINECONE_INDEX);
-        if (PINECONE_NAMESPACE) idx = idx.namespace(PINECONE_NAMESPACE);
-        const queryRes = await idx.query({
-            vector: qEmbedding,
-            topK,
-            includeMetadata: true
-        });
-
-        const matches = (queryRes.matches || []).map(m => ({
-            id: m.id,
-            score: m.score,
-            metadata: m.metadata || {}
-        }));
-
-        // 3) monta contexto
-        const contextBlocks = matches.map((m, i) => `# Resultado ${i + 1} (score: ${Number(m.score).toFixed(3)})\n${buildContextFromMetadata(m.metadata)}`);
-        let context = contextBlocks.join('\n\n');
-        // limita contexto para evitar prompts muito longos
-        if (context.length > 8000) context = context.slice(0, 8000);
-
-        // 4) chamada ao modelo de chat
-        const systemPrompt = [
-            'Você é um assistente de suporte técnico de um ERP. Responda em português de forma objetiva e prática.',
-            'Use apenas as informações do CONTEXTO fornecido. Se o contexto não ajudar, admita e sugira passos de diagnóstico.',
-            'Se houver passos de comando (ex.: plusinstall), descreva-os com cuidado.',
-        ].join(' ');
-
-        const userPrompt = `Pergunta do usuário:\n${question}\n\nCONTEXTO (resultados do banco vetorial):\n${context}`;
-
-        const completion = await openai.chat.completions.create({
-            model: CHAT_MODEL,
-            temperature: 0.2,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ]
-        });
-
-        const answer = completion.choices?.[0]?.message?.content || '';
-
-        return res.json({ ok: true, answer, matches });
-    } catch (err) {
-        console.error('[/chat] Erro:', err);
-        return res.status(500).json({ error: 'Falha ao processar chat', details: err.message });
-    }
-});
+// Rota de chat (local) e alias para compatibilidade com Vercel
+const chatHandler = require(path.join(__dirname, 'api', 'chat.js'));
+app.post('/chat', chatHandler);
+app.post('/api/chat', chatHandler);
 
 // Rota para converter JSON para Excel
 app.post('/convert', upload.single('jsonFile'), (req, res) => {

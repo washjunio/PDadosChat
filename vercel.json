@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/chat", "destination": "/public/chat.html" },
+    { "source": "/chat.html", "destination": "/public/chat.html" }
+  ],
+  "ignoreCommand": true
+}
+
+
