@@ -1,3 +1,24 @@
+# json-to-excel + RAG Chat
+
+App Node.js (Express) que:
+- converte JSON → Excel
+- gera embeddings (OpenAI) e faz upsert no Pinecone
+- expõe um chat RAG protegido por senha
+
+## Deploy na Vercel
+
+Este projeto é Express + arquivos estáticos. Na Vercel:
+- Framework preset: Node.js (ou Other)
+- Output: pasta `public` é servida estaticamente
+- `server.js` roda como serverless/Edge Function (via Node runtime)
+
+Rotas:
+- `/` → `public/chat.html` (página principal)
+- `/chat.html` → mesma página do chat
+- `/embed-json`, `/chat`, `/convert` → API
+
+Se o link para o chat não abrir, use `/chat.html` diretamente (ex.: `https://seu-app.vercel.app/chat.html`).
+
 # Conversor JSON para Excel
 
 Um projeto Node.js que converte dados JSON em planilhas Excel (.xlsx).
