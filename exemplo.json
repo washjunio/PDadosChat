@@ -1,0 +1,32 @@
+[
+  {
+    "respAbertura": "Renata Borges",
+    "titulo": "Plus nao puxa a loja",
+    "problema": "Plus nao puxa a loja ao fazer login",
+    "solucao": "disco c estava cheio, wash mexeu e depois deu erro de conexao, executei plusinstall e deu certo",
+    "menuSistema": "",
+    "nomeCli": "FUFU LEGAL",
+    "nomeFuncionarioCliente": "Daniel Machado",
+    "Comentario": null
+  },
+  {
+    "respAbertura": "Renata Borges",
+    "titulo": "Nota fiscal",
+    "problema": "cean invalido",
+    "solucao": "corrigido cod de barras no cadastro e nfe foi emitida",
+    "menuSistema": "",
+    "nomeCli": "TELLURE AGRO",
+    "nomeFuncionarioCliente": "Andreia",
+    "Comentario": null
+  },
+  {
+    "respAbertura": "João Silva",
+    "titulo": "Erro de conexão",
+    "problema": "Sistema não consegue conectar com o banco de dados",
+    "solucao": "Reiniciado o serviço de banco de dados e configurado firewall",
+    "menuSistema": "Sistema Principal",
+    "nomeCli": "EMPRESA ABC",
+    "nomeFuncionarioCliente": "Maria Santos",
+    "Comentario": "Problema resolvido em 30 minutos"
+  }
+]

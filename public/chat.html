@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistente de Suporte ERP</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#f6f7fb; margin:0; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 16px; }
+    .header a { color:#667eea; text-decoration:none; }
+    .card { background:#fff; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 16px; }
+    .messages { height: 60vh; overflow-y:auto; padding: 8px; background:#fafbff; border:1px solid #eceffd; border-radius: 12px; }
+    .msg { display:flex; gap:8px; margin:12px 0; }
+    .msg.user .bubble { background:#667eea; color:#fff; }
+    .msg.assistant .bubble { background:#eef2ff; color:#333; }
+    .bubble { padding:12px 14px; border-radius:12px; max-width: 80%; white-space: pre-wrap; }
+    .input { display:flex; gap:8px; margin-top: 12px; }
+    input[type="text"] { flex:1; padding:12px 14px; border-radius:12px; border:1px solid #dfe3f7; font-size:16px; }
+    button { padding:12px 16px; border:none; border-radius:12px; background:#667eea; color:#fff; cursor:pointer; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .meta { font-size:12px; color:#666; margin-top:4px; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#edf2ff; color:#374; font-size:12px; margin-right:6px; }
+    .lock { position: fixed; inset:0; background: rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index: 9999; }
+    .lock-card { background:#fff; padding:24px; border-radius:12px; box-shadow: 0 6px 20px rgba(0,0,0,.2); width: 360px; max-width: 92vw; }
+    .lock-card h3 { margin-top:0; margin-bottom:12px; }
+    .lock-card input { width:100%; padding:10px 12px; border:1px solid #dfe3f7; border-radius:10px; font-size:16px; display:block; }
+    .lock-card button { width:100%; margin-top:10px; }
+  </style>
+  </head>
+  <body>
+  <div class="container">
+    <div class="header">
+      <h2>🤖 Assistente de Suporte ERP</h2>
+      <a href="/">← Voltar</a>
+    </div>
+
+    <div class="card">
+      <div id="messages" class="messages"></div>
+      <div class="input">
+        <input id="question" type="text" placeholder="Digite sua pergunta de suporte..." />
+        <button id="sendBtn" onclick="send()">Enviar</button>
+      </div>
+      <div class="meta">
+        Consulta topK: <input id="topK" type="number" min="1" max="100" value="50" style="width:60px;"> | Modelo: backend
+      </div>
+    </div>
+  </div>
+
+  <div id="lock" class="lock">
+    <div class="lock-card">
+      <h3>Digite a senha para acessar</h3>
+      <input id="pwd" type="password" placeholder="Senha" />
+      <button onclick="unlock()">Entrar</button>
+      <div id="lockError" style="color:#c62828; font-size:13px; margin-top:8px; display:none;">Senha incorreta.</div>
+    </div>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const questionEl = document.getElementById('question');
+    const sendBtn = document.getElementById('sendBtn');
+    const lockEl = document.getElementById('lock');
+    const pwdEl = document.getElementById('pwd');
+    const lockErr = document.getElementById('lockError');
+
+    function appendMessage(role, text) {
+      const row = document.createElement('div');
+      row.className = 'msg ' + (role === 'user' ? 'user' : 'assistant');
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function appendContext(matches) {
+      if (!matches || !matches.length) return;
+      const block = document.createElement('div');
+      block.className = 'msg assistant';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      const parts = matches.map((m,i)=>{
+        const md = m.metadata || {};
+        const lines = [];
+        if (md.titulo) lines.push('Título: ' + md.titulo);
+        if (md.problema) lines.push('Problema: ' + md.problema);
+        if (md.solucao) lines.push('Solução: ' + md.solucao);
+        if (md.nomeCli) lines.push('Cliente: ' + md.nomeCli);
+        if (md.Tags) lines.push('Tags: ' + md.Tags);
+        return `#${i+1} (score: ${Number(m.score).toFixed(3)})\n` + lines.join('\n');
+      });
+      bubble.textContent = 'Contexto utilizado:\n\n' + parts.join('\n\n');
+      block.appendChild(bubble);
+      messagesEl.appendChild(block);
+    }
+
+    async function send() {
+      const question = questionEl.value.trim();
+      const topK = parseInt(document.getElementById('topK').value || '5', 10);
+      if (!question) return;
+      questionEl.value = '';
+      appendMessage('user', question);
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-chat-password': window.__CHAT_PWD || '' },
+          body: JSON.stringify({ question, topK })
+        });
+        const out = await res.json();
+        sendBtn.disabled = false;
+        if (!res.ok) {
+          appendMessage('assistant', 'Erro: ' + (out.error || 'Falha ao consultar.'));
+          return;
+        }
+        appendContext(out.matches);
+        appendMessage('assistant', out.answer || '(sem resposta)');
+      } catch (err) {
+        sendBtn.disabled = false;
+        appendMessage('assistant', 'Erro ao enviar a pergunta.');
+      }
+    }
+
+    questionEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        send();
+      }
+    });
+
+    // Mensagem inicial
+    appendMessage('assistant', 'Olá! Sou seu assistente de suporte do Plus. Pergunte algo como: "Plus não puxa a loja ao fazer login, o que verificar?"');
+
+    function unlock() {
+      const v = (pwdEl.value || '').trim();
+      if (v === '120996') {
+        window.__CHAT_PWD = v;
+        lockEl.style.display = 'none';
+        questionEl.focus();
+      } else {
+        lockErr.style.display = 'block';
+      }
+    }
+    pwdEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') unlock();
+    });
+  </script>
+  </body>
+  </html>
+

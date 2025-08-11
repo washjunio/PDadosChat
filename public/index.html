@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor JSON para Excel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 20px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+
+        .file-label:hover {
+            border-color: #667eea;
+            background: #f0f0f0;
+        }
+
+        .file-label.dragover {
+            border-color: #667eea;
+            background: #f0f8ff;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .sample-btn {
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .sample-btn:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Conversor JSON para Excel</h1>
+        <div style="text-align:center; margin-bottom: 16px;">
+            <a href="/chat" style="color:#667eea; text-decoration:none; font-weight:600;">Abrir Assistente de Suporte (Chat)</a>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('json')">JSON Direto</div>
+            <div class="tab" onclick="switchTab('file')">Arquivo JSON</div>
+        </div>
+
+        <div id="json-tab" class="tab-content active">
+            <button class="sample-btn" onclick="loadSampleData()">Carregar Dados de Exemplo</button>
+            
+            <div class="form-group">
+                <label for="jsonData">Cole seu JSON aqui:</label>
+                <textarea id="jsonData" placeholder='[
+  {
+    "respAbertura": "Renata Borges",
+    "titulo": "Plus nao puxa a loja",
+    "problema": "Plus nao puxa a loja ao fazer login",
+    "solucao": "disco c estava cheio, wash mexeu e depois deu erro de conexao, executei plusinstall e deu certo",
+    "menuSistema": "",
+    "nomeCli": "FUFU LEGAL",
+    "nomeFuncionarioCliente": "Daniel Machado",
+    "Comentario": null
+  }
+]'></textarea>
+            </div>
+            
+            <button class="btn" onclick="convertJson()">Converter para Excel</button>
+            <button class="btn" style="margin-top: 10px; background: linear-gradient(135deg,#26a69a 0%, #26c6da 100%);" onclick="embedJson()">Transformar em vetor (Pinecone)</button>
+        </div>
+
+        <div id="file-tab" class="tab-content">
+            <div class="form-group">
+                <label for="fileInput">Selecione um arquivo JSON:</label>
+                <input type="file" id="fileInput" class="file-input" accept=".json">
+                <label for="fileInput" class="file-label" id="fileLabel">
+                    📁 Clique aqui ou arraste um arquivo JSON
+                </label>
+            </div>
+            
+            <button class="btn" onclick="convertFile()">Converter para Excel</button>
+            <button class="btn" style="margin-top: 10px; background: linear-gradient(135deg,#26a69a 0%, #26c6da 100%);" onclick="embedFile()">Transformar em vetor (Pinecone)</button>
+        </div>
+
+        
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Convertendo para Excel...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            document.querySelector(`.tab[onclick*="${tabName}"]`).classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function loadSampleData() {
+            const sampleData = [
+                {
+                    "respAbertura": "Renata Borges",
+                    "titulo": "Plus nao puxa a loja",
+                    "problema": "Plus nao puxa a loja ao fazer login",
+                    "solucao": "disco c estava cheio, wash mexeu e depois deu erro de conexao, executei plusinstall e deu certo",
+                    "menuSistema": "",
+                    "nomeCli": "FUFU LEGAL",
+                    "nomeFuncionarioCliente": "Daniel Machado",
+                    "Comentario": null
+                },
+                {
+                    "respAbertura": "Renata Borges",
+                    "titulo": "Nota fiscal",
+                    "problema": "cean invalido",
+                    "solucao": "corrigido cod de barras no cadastro e nfe foi emitida",
+                    "menuSistema": "",
+                    "nomeCli": "TELLURE AGRO",
+                    "nomeFuncionarioCliente": "Andreia",
+                    "Comentario": null
+                }
+            ];
+            
+            document.getElementById('jsonData').value = JSON.stringify(sampleData, null, 2);
+        }
+
+        function showLoading(text) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loadingText').textContent = text || 'Processando...';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function convertJson() {
+            const jsonData = document.getElementById('jsonData').value.trim();
+            
+            if (!jsonData) {
+                showError('Por favor, insira dados JSON válidos.');
+                return;
+            }
+
+            try {
+                JSON.parse(jsonData);
+            } catch (e) {
+                showError('JSON inválido. Verifique a sintaxe.');
+                return;
+            }
+
+            showLoading('Convertendo para Excel...');
+
+            fetch('/convert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ data: jsonData })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    return response.json().then(err => Promise.reject(err));
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dados_convertidos_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                hideLoading();
+                showSuccess('Arquivo Excel gerado com sucesso!');
+            })
+            .catch(error => {
+                hideLoading();
+                showError(error.error || 'Erro ao converter dados.');
+            });
+        }
+
+        function convertFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showError('Por favor, selecione um arquivo JSON.');
+                return;
+            }
+
+            showLoading('Convertendo para Excel...');
+
+            const formData = new FormData();
+            formData.append('jsonFile', file);
+
+            fetch('/convert', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    return response.json().then(err => Promise.reject(err));
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dados_convertidos_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                hideLoading();
+                showSuccess('Arquivo Excel gerado com sucesso!');
+            })
+            .catch(error => {
+                hideLoading();
+                showError(error.error || 'Erro ao converter arquivo.');
+            });
+        }
+
+        // File input handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileLabel').textContent = `📄 ${file.name}`;
+            }
+        });
+
+        // Drag and drop functionality
+        const fileLabel = document.getElementById('fileLabel');
+        
+        fileLabel.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        fileLabel.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+        });
+
+        fileLabel.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('fileInput').files = files;
+                document.getElementById('fileLabel').textContent = `📄 ${files[0].name}`;
+            }
+        });
+
+        async function embedJson() {
+            const jsonStr = document.getElementById('jsonData').value.trim();
+            if (!jsonStr) {
+                showError('Por favor, insira dados JSON válidos.');
+                return;
+            }
+            let payload;
+            try {
+                const parsed = JSON.parse(jsonStr);
+                if (!Array.isArray(parsed)) {
+                    showError('O JSON deve ser um array de objetos.');
+                    return;
+                }
+                payload = parsed;
+            } catch (e) {
+                showError('JSON inválido. Verifique a sintaxe.');
+                return;
+            }
+
+            showLoading('Gerando embeddings e enviando ao Pinecone...');
+            try {
+                const res = await fetch('/embed-json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const out = await res.json();
+                hideLoading();
+                if (!res.ok) {
+                    showError(out.error || 'Falha ao salvar no banco vetorial.');
+                    return;
+                }
+                const ns = out.namespace ? `/${out.namespace}` : '';
+                showSuccess(`Vetores inseridos: ${out.upserted}. Índice: ${out.index}${ns}. Modelo: ${out.model}.`);
+            } catch (err) {
+                hideLoading();
+                showError('Erro na chamada ao endpoint de embeddings.');
+            }
+        }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsText(file);
+            });
+        }
+
+        async function embedFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                showError('Por favor, selecione um arquivo JSON.');
+                return;
+            }
+            try {
+                const text = await readFileAsText(file);
+                const parsed = JSON.parse(text);
+                if (!Array.isArray(parsed)) {
+                    showError('O arquivo deve conter um array de objetos JSON.');
+                    return;
+                }
+                showLoading('Gerando embeddings e enviando ao Pinecone...');
+                const res = await fetch('/embed-json', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(parsed)
+                });
+                const out = await res.json();
+                hideLoading();
+                if (!res.ok) {
+                    showError(out.error || 'Falha ao salvar no banco vetorial.');
+                    return;
+                }
+                const ns = out.namespace ? `/${out.namespace}` : '';
+                showSuccess(`Vetores inseridos: ${out.upserted}. Índice: ${out.index}${ns}. Modelo: ${out.model}.`);
+            } catch (err) {
+                hideLoading();
+                showError('Erro ao ler o arquivo ou ao chamar o endpoint de embeddings.');
+            }
+        }
+
+        async function ragIndex() {
+            const fieldsStr = document.getElementById('ragFields').value.trim();
+            const jsonStr = document.getElementById('ragJson').value.trim();
+            if (!jsonStr) {
+                showError('Insira um JSON para indexar no RAG.');
+                return;
+            }
+            try {
+                JSON.parse(jsonStr);
+            } catch (e) {
+                showError('JSON inválido para indexação.');
+                return;
+            }
+            showLoading();
+            try {
+                const res = await fetch('/rag/index', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: jsonStr, selectFields: fieldsStr })
+                });
+                const out = await res.json();
+                hideLoading();
+                if (!res.ok) {
+                    showError(out.error || 'Falha ao indexar.');
+                    return;
+                }
+                showSuccess(`Indexados ${out.count} documentos (provider: ${out.provider}, dims: ${out.dims}).`);
+                document.getElementById('ragOutput').textContent = JSON.stringify(out, null, 2);
+            } catch (err) {
+                hideLoading();
+                showError('Erro na chamada de indexação.');
+            }
+        }
+
+        async function ragQuery() {
+            const question = document.getElementById('ragQuestion').value.trim();
+            const topK = parseInt(document.getElementById('ragTopK').value || '5', 10);
+            const answer = document.getElementById('ragAnswerLLM').checked;
+            if (!question) {
+                showError('Escreva uma pergunta.');
+                return;
+            }
+            showLoading();
+            try {
+                const res = await fetch('/rag/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, topK, answer })
+                });
+                const out = await res.json();
+                hideLoading();
+                if (!res.ok) {
+                    showError(out.error || 'Falha na consulta.');
+                    return;
+                }
+                const formatted = {
+                    ...out,
+                    matches: (out.matches || []).map(m => ({ score: Number(m.score).toFixed(3), metadata: m.metadata }))
+                };
+                document.getElementById('ragOutput').textContent = JSON.stringify(formatted, null, 2);
+                showSuccess(out.answer ? 'Resposta gerada com LLM.' : 'Resultados retornados.');
+            } catch (err) {
+                hideLoading();
+                showError('Erro na chamada de consulta.');
+            }
+        }
+    </script>
+</body>
+</html>
