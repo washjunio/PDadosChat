@@ -6,16 +6,16 @@
   <title>Central • Ferramentas de Suporte</title>
   <style>
     :root{
-      --bg1:#5b67f1; --bg2:#7b2cbf; --card:#ffffff; --ink:#1f2937; --muted:#6b7280; --accent:#667eea; --teal:#26a69a;
+      --bg1:#0f6a4d; --bg2:#0f6a4d; --card:#ffffff; --ink:#1f2937; --muted:#6b7280; --accent:#667eea; --teal:#26a69a;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
-      background: linear-gradient(135deg, #e8f5e9 0%, #d1fae5 100%);
+      background: var(--bg1);
       background-attachment: fixed;}
     .shell{max-width:1040px;margin:0 auto;padding:28px}
     .nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
-    .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
-    .brand .logo{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#fff1;backdrop-filter: blur(6px);color:#fff;font-weight:700}
+    .brand{display:flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
+    .brand-img{height:40px;width:auto;display:block}
     .nav a.btn{margin-left:10px}
     .card{background:var(--card);border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.15);overflow:hidden}
     .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;padding:36px}
@@ -37,11 +37,9 @@
   <body>
   <div class="shell">
     <div class="nav">
-      <a class="brand" href="#"><span class="logo">🧩</span><strong>Central de Ferramentas</strong></a>
+      <a class="brand" href="#"><img class="brand-img" src="/logo_pdados.png" alt="Pro-Dados" /><strong>Central de Ferramentas para IA</strong></a>
       <div>
-        <a class="btn ghost" href="/chat.html">Chat</a>
-        <a class="btn ghost" href="/index.html">Excel</a>
-        <a class="btn ghost" href="/vector.html">Vetor</a>
+
       </div>
     </div>
 
@@ -51,12 +49,14 @@
           <h1>Produtividade para Suporte ERP</h1>
           <p>Converta dados para Excel, gere vetores para busca semântica no Pinecone e utilize um chat baseado em RAG para responder dúvidas com base no seu histórico.</p>
           <div class="cta">
-            <a class="btn primary" href="/index.html">Transformar em Excel</a>
-            <a class="btn teal" href="/vector.html">Transformar em Vetor</a>
-            <a class="btn ghost" href="/chat.html">Abrir Chat de Suporte</a>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <a class="btn primary" href="/index.html">Transformar em Excel</a>
+              <a class="btn teal" href="/vector.html">Transformar em Vetor</a>
+              <a class="btn ghost" href="/chat.html">Abrir Chat de Suporte</a>
+            </div>
           </div>
         </div>
-        <div class="illus">📊 🔎 💬</div>
+        <div class="illus"><img src="/ia.png" alt="Ilustração IA" style="max-width:100%; height:auto;"/></div>
       </div>
       <div class="grid">
         <div class="feature">

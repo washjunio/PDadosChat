@@ -138,6 +138,16 @@ app.get('/home', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
+// Servir a logo colocada na raiz do projeto
+app.get('/logo_pdados.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'logo_pdados.png'));
+});
+
+// Servir a imagem ia.png colocada na raiz do projeto
+app.get('/ia.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'ia.png'));
+});
+
 // Página de chat (RAG)
 app.get('/chat', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'chat.html'));

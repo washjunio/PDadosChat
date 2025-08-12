@@ -27,7 +27,29 @@
     .lock-card h3 { margin-top:0; margin-bottom:12px; }
     .lock-card input { width:100%; padding:10px 12px; border:1px solid #dfe3f7; border-radius:10px; font-size:16px; display:block; }
     .lock-card button { width:100%; margin-top:10px; }
+
+    /* Caixa com markdown formatado */
+    .bubble.markdown { white-space: normal; background:#ffffff; }
+    .bubble.markdown h1, .bubble.markdown h2, .bubble.markdown h3 { margin: .4em 0 .2em; }
+    .bubble.markdown p { margin: .4em 0; }
+    .bubble.markdown ul, .bubble.markdown ol { margin: .4em 0 .4em 1.2em; }
+    .bubble.markdown code { background:#f3f4f6; padding:2px 4px; border-radius:4px; }
+    .bubble.markdown pre { 
+      background:#f8fafc; 
+      color:#111827; 
+      padding:12px 14px; 
+      border-radius:12px; 
+      overflow:auto; 
+      border:1px solid #e5e7eb; 
+      line-height:1.4; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    .bubble.markdown pre code{ background:transparent; padding:0; }
   </style>
+  <!-- libs para renderizar markdown com sanitização -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
   </head>
   <body>
   <div class="container">
@@ -43,7 +65,10 @@
         <button id="sendBtn" onclick="send()">Enviar</button>
       </div>
       <div class="meta">
-        Consulta topK: <input id="topK" type="number" min="1" max="100" value="50" style="width:60px;"> | Modelo: backend
+        Consulta topK: <input id="topK" type="number" min="1" max="100" value="50" style="width:60px;"> | 
+        <label style="margin-left:6px;">
+          <input type="checkbox" id="showContext" checked> Mostrar contexto utilizado
+        </label>
       </div>
     </div>
   </div>
@@ -76,12 +101,29 @@
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
+    function appendAssistantMarkdown(md) {
+      const row = document.createElement('div');
+      row.className = 'msg assistant';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble markdown';
+      try {
+        const html = marked.parse(md || '');
+        bubble.innerHTML = DOMPurify.sanitize(html);
+      } catch (e) {
+        bubble.textContent = md || '';
+      }
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
     function appendContext(matches) {
       if (!matches || !matches.length) return;
       const block = document.createElement('div');
       block.className = 'msg assistant';
       const bubble = document.createElement('div');
       bubble.className = 'bubble';
+      const header = `Contexto utilizado (top ${matches.length}):`;
       const parts = matches.map((m,i)=>{
         const md = m.metadata || {};
         const lines = [];
@@ -90,9 +132,10 @@
         if (md.solucao) lines.push('Solução: ' + md.solucao);
         if (md.nomeCli) lines.push('Cliente: ' + md.nomeCli);
         if (md.Tags) lines.push('Tags: ' + md.Tags);
+        lines.push('ID: ' + (m.id || '(sem id)'));
         return `#${i+1} (score: ${Number(m.score).toFixed(3)})\n` + lines.join('\n');
       });
-      bubble.textContent = 'Contexto utilizado:\n\n' + parts.join('\n\n');
+      bubble.textContent = header + '\n\n' + parts.join('\n\n');
       block.appendChild(bubble);
       messagesEl.appendChild(block);
     }
@@ -118,8 +161,14 @@
           appendMessage('assistant', 'Erro: ' + (out.error || 'Falha ao consultar.'));
           return;
         }
-        appendContext(out.matches);
-        appendMessage('assistant', out.answer || '(sem resposta)');
+        if (document.getElementById('showContext').checked) {
+          if (Array.isArray(out.matches) && out.matches.length > 0) {
+            appendContext(out.matches);
+          } else {
+            appendMessage('assistant', 'Nenhum contexto retornado pelo banco vetorial.');
+          }
+        }
+        appendAssistantMarkdown(out.answer || '(sem resposta)');
       } catch (err) {
         sendBtn.disabled = false;
         appendMessage('assistant', 'Erro ao enviar a pergunta.');
