@@ -18,8 +18,11 @@
     .bubble { padding:12px 14px; border-radius:12px; max-width: 80%; white-space: pre-wrap; }
     .input { display:flex; gap:8px; margin-top: 12px; }
     input[type="text"] { flex:1; padding:12px 14px; border-radius:12px; border:1px solid #dfe3f7; font-size:16px; }
-    button { padding:12px 16px; border:none; border-radius:12px; background:#667eea; color:#fff; cursor:pointer; }
+    button { padding:12px 16px; border:none; border-radius:12px; background:#667eea; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
     button:disabled { opacity: .6; cursor: not-allowed; }
+    .spinner { display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,.6); border-top-color:#fff; border-radius:50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #sendBtn.loading .spinner { display:inline-block; }
     .meta { font-size:12px; color:#666; margin-top:4px; }
     .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#edf2ff; color:#374; font-size:12px; margin-right:6px; }
     .lock { position: fixed; inset:0; background: rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index: 9999; }
@@ -62,10 +65,10 @@
       <div id="messages" class="messages"></div>
       <div class="input">
         <input id="question" type="text" placeholder="Digite sua pergunta de suporte..." />
-        <button id="sendBtn" onclick="send()">Enviar</button>
+        <button id="sendBtn" onclick="send()"><span class="btn-label">Enviar</span><span class="spinner" aria-hidden="true"></span></button>
       </div>
       <div class="meta">
-        Consulta topK: <input id="topK" type="number" min="1" max="100" value="50" style="width:60px;"> | 
+        Consulta topK (max 30): <input id="topK" type="number" min="1" max="100" value="10" style="width:60px;"> | 
         <label style="margin-left:6px;">
           <input type="checkbox" id="showContext" checked> Mostrar contexto utilizado
         </label>
@@ -147,6 +150,7 @@
       questionEl.value = '';
       appendMessage('user', question);
       sendBtn.disabled = true;
+      sendBtn.classList.add('loading');
 
       try {
         const endpoint = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? '/chat' : '/api/chat';
@@ -157,6 +161,7 @@
         });
         const out = await res.json();
         sendBtn.disabled = false;
+        sendBtn.classList.remove('loading');
         if (!res.ok) {
           appendMessage('assistant', 'Erro: ' + (out.error || 'Falha ao consultar.'));
           return;
@@ -171,6 +176,7 @@
         appendAssistantMarkdown(out.answer || '(sem resposta)');
       } catch (err) {
         sendBtn.disabled = false;
+        sendBtn.classList.remove('loading');
         appendMessage('assistant', 'Erro ao enviar a pergunta.');
       }
     }

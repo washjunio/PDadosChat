@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
     }
 
     const question = (req.body && req.body.question) ? String(req.body.question) : '';
-    const topK = Math.max(1, Math.min(10, Number(req.body?.topK || 20)));
+    const topK = Math.max(1, Math.min(30, Number(req.body?.topK || 20)));
     if (!question) return res.status(400).json({ error: 'Campo "question" é obrigatório' });
 
     const [qEmbedding] = await embedBatch([question]);
@@ -79,7 +79,7 @@ module.exports = async function handler(req, res) {
     if (context.length > 8000) context = context.slice(0, 8000);
 
     const systemPrompt = [
-      'Você é um assistente de suporte técnico de um ERP. Responda em português de forma objetiva e prática.',
+      'Você é um assistente de suporte técnico de um ERP chamado Pro-Dados Plus. Responda em português de forma objetiva e prática.',
       'Use apenas as informações do CONTEXTO fornecido. Se o contexto não ajudar, admita e sugira passos de diagnóstico.',
       'Se houver passos de comando (ex.: plusinstall), descreva-os com cuidado.',
     ].join(' ');
