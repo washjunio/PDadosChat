@@ -138,15 +138,8 @@ app.get('/home', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-// Servir a logo colocada na raiz do projeto
-app.get('/logo_pdados.png', (req, res) => {
-    res.sendFile(path.join(__dirname, 'logo_pdados.png'));
-});
-
-// Servir a imagem ia.png colocada na raiz do projeto
-app.get('/ia.png', (req, res) => {
-    res.sendFile(path.join(__dirname, 'ia.png'));
-});
+// Servir estáticos adicionais da pasta public/assets (onde ficam imagens no deploy)
+app.use('/assets', express.static(path.join(__dirname, 'public', 'assets')));
 
 // Página de chat (RAG)
 app.get('/chat', (req, res) => {
