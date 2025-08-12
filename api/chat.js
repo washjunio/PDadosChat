@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
     }
 
     const question = (req.body && req.body.question) ? String(req.body.question) : '';
-    const topK = Math.max(1, Math.min(30, Number(req.body?.topK || 20)));
+    const topK = Math.max(1, Math.min(100, Number(req.body?.topK || 20)));
     if (!question) return res.status(400).json({ error: 'Campo "question" é obrigatório' });
 
     const [qEmbedding] = await embedBatch([question]);

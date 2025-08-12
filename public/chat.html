@@ -13,6 +13,8 @@
     .card { background:#fff; border-radius: 16px; box-shadow: 0 10px 24px rgba(0,0,0,0.08); padding: 16px; }
     .messages { height: 60vh; overflow-y:auto; padding: 8px; background:#fafbff; border:1px solid #eceffd; border-radius: 12px; }
     .msg { display:flex; gap:8px; margin:12px 0; }
+    .msg.user { justify-content: flex-end; }
+    .msg.assistant { justify-content: flex-start; }
     .msg.user .bubble { background:#667eea; color:#fff; }
     .msg.assistant .bubble { background:#eef2ff; color:#333; }
     .bubble { padding:12px 14px; border-radius:12px; max-width: 80%; white-space: pre-wrap; }
@@ -20,9 +22,6 @@
     input[type="text"] { flex:1; padding:12px 14px; border-radius:12px; border:1px solid #dfe3f7; font-size:16px; }
     button { padding:12px 16px; border:none; border-radius:12px; background:#667eea; color:#fff; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
     button:disabled { opacity: .6; cursor: not-allowed; }
-    .spinner { display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,.6); border-top-color:#fff; border-radius:50%; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #sendBtn.loading .spinner { display:inline-block; }
     .meta { font-size:12px; color:#666; margin-top:4px; }
     .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; background:#edf2ff; color:#374; font-size:12px; margin-right:6px; }
     .lock { position: fixed; inset:0; background: rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index: 9999; }
@@ -32,11 +31,11 @@
     .lock-card button { width:100%; margin-top:10px; }
 
     /* Caixa com markdown formatado */
-    .bubble.markdown { white-space: normal; background:#ffffff; }
+    .bubble.markdown { white-space: normal; background:#f7f8ff; }
     .bubble.markdown h1, .bubble.markdown h2, .bubble.markdown h3 { margin: .4em 0 .2em; }
     .bubble.markdown p { margin: .4em 0; }
     .bubble.markdown ul, .bubble.markdown ol { margin: .4em 0 .4em 1.2em; }
-    .bubble.markdown code { background:#f3f4f6; padding:2px 4px; border-radius:4px; }
+    .bubble.markdown code { background:#f1f5f9; padding:2px 4px; border-radius:4px; }
     .bubble.markdown pre { 
       background:#f8fafc; 
       color:#111827; 
@@ -49,6 +48,79 @@
       box-shadow: 0 2px 8px rgba(0,0,0,.04);
     }
     .bubble.markdown pre code{ background:transparent; padding:0; }
+
+    /* Acordeão para contexto */
+    .context-accordion { 
+      background:#f8fafc; 
+      border:1px solid #e5e7eb; 
+      border-radius:12px; 
+      margin:8px 0; 
+      overflow:hidden; 
+    }
+    .context-header { 
+      background:#f1f5f9; 
+      padding:12px 16px; 
+      cursor:pointer; 
+      display:flex; 
+      align-items:center; 
+      justify-content:space-between; 
+      font-weight:500; 
+      color:#374151;
+      transition: background-color 0.2s;
+    }
+    .context-header:hover { background:#e5e7eb; }
+    .context-header .toggle { 
+      font-size:18px; 
+      transition: transform 0.2s; 
+      color:#6b7280;
+    }
+    .context-header.expanded .toggle { transform: rotate(180deg); }
+    .context-content { 
+      max-height:0; 
+      overflow:hidden; 
+      transition: max-height 0.3s ease-out; 
+      background:#ffffff;
+    }
+    .context-content.expanded { 
+      max-height:1000px; 
+      padding:16px; 
+      border-top:1px solid #e5e7eb;
+      overflow-y: auto;
+      max-height: 400px;
+    }
+    .context-item { 
+      background:#f9fafb; 
+      border:1px solid #e5e7eb; 
+      border-radius:8px; 
+      padding:12px; 
+      margin:8px 0; 
+    }
+    .context-item h4 { 
+      margin:0 0 8px; 
+      color:#374151; 
+      font-size:14px; 
+      font-weight:600; 
+    }
+    .context-item p { 
+      margin:4px 0; 
+      color:#6b7280; 
+      font-size:13px; 
+      line-height:1.4; 
+    }
+    .context-score { 
+      display:inline-block; 
+      background:#dbeafe; 
+      color:#1e40af; 
+      padding:2px 8px; 
+      border-radius:12px; 
+      font-size:11px; 
+      font-weight:500; 
+      margin-bottom:8px; 
+    }
+
+    .spinner { display:none; width:14px; height:14px; border:2px solid rgba(255,255,255,.6); border-top-color:#fff; border-radius:50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #sendBtn.loading .spinner { display:inline-block; }
   </style>
   <!-- libs para renderizar markdown com sanitização -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -122,25 +194,67 @@
 
     function appendContext(matches) {
       if (!matches || !matches.length) return;
-      const block = document.createElement('div');
-      block.className = 'msg assistant';
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      const header = `Contexto utilizado (top ${matches.length}):`;
-      const parts = matches.map((m,i)=>{
+      
+      const row = document.createElement('div');
+      row.className = 'msg assistant';
+      
+      const accordion = document.createElement('div');
+      accordion.className = 'context-accordion';
+      
+      const header = document.createElement('div');
+      header.className = 'context-header';
+      header.innerHTML = `
+        <span>📚 Contexto utilizado (top ${matches.length})</span>
+        <span class="toggle">▼</span>
+      `;
+      
+      const content = document.createElement('div');
+      content.className = 'context-content';
+      
+      matches.forEach((m, i) => {
         const md = m.metadata || {};
-        const lines = [];
-        if (md.titulo) lines.push('Título: ' + md.titulo);
-        if (md.problema) lines.push('Problema: ' + md.problema);
-        if (md.solucao) lines.push('Solução: ' + md.solucao);
-        if (md.nomeCli) lines.push('Cliente: ' + md.nomeCli);
-        if (md.Tags) lines.push('Tags: ' + md.Tags);
-        lines.push('ID: ' + (m.id || '(sem id)'));
-        return `#${i+1} (score: ${Number(m.score).toFixed(3)})\n` + lines.join('\n');
+        const item = document.createElement('div');
+        item.className = 'context-item';
+        
+        const score = document.createElement('div');
+        score.className = 'context-score';
+        score.textContent = `Score: ${Number(m.score).toFixed(3)}`;
+        
+        const title = document.createElement('h4');
+        title.textContent = `Resultado #${i + 1}`;
+        
+        const details = document.createElement('div');
+        if (md.titulo) details.innerHTML += `<p><strong>Título:</strong> ${md.titulo}</p>`;
+        if (md.problema) details.innerHTML += `<p><strong>Problema:</strong> ${md.problema}</p>`;
+        if (md.solucao) details.innerHTML += `<p><strong>Solução:</strong> ${md.solucao}</p>`;
+        if (md.nomeCli) details.innerHTML += `<p><strong>Cliente:</strong> ${md.nomeCli}</p>`;
+        if (md.Tags) details.innerHTML += `<p><strong>Tags:</strong> ${md.Tags}</p>`;
+        if (m.id) details.innerHTML += `<p><strong>ID:</strong> ${m.id}</p>`;
+        
+        item.appendChild(score);
+        item.appendChild(title);
+        item.appendChild(details);
+        content.appendChild(item);
       });
-      bubble.textContent = header + '\n\n' + parts.join('\n\n');
-      block.appendChild(bubble);
-      messagesEl.appendChild(block);
+      
+      accordion.appendChild(header);
+      accordion.appendChild(content);
+      
+      // Toggle do acordeão
+      header.addEventListener('click', () => {
+        const isExpanded = header.classList.contains('expanded');
+        if (isExpanded) {
+          header.classList.remove('expanded');
+          content.classList.remove('expanded');
+        } else {
+          header.classList.add('expanded');
+          content.classList.add('expanded');
+        }
+      });
+      
+      row.appendChild(accordion);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
     async function send() {
